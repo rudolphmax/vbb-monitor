@@ -16,4 +16,4 @@ build-debug: install-debug
 
 run: build
 	clear
-	./build/bvg_monitor
+	./build/vbb_monitor

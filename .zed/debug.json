@@ -10,7 +10,7 @@
       "args": ["-j8"],
       "cwd": "$ZED_WORKTREE_ROOT"
     },
-    "program": "$ZED_WORKTREE_ROOT/build/bvg_monitor",
+    "program": "$ZED_WORKTREE_ROOT/build/vbb_monitor",
     "request": "launch",
     "adapter": "CodeLLDB"
   }
