@@ -1,0 +1,6 @@
+[requires]
+curlpp/0.8.1.cci.20240530
+
+[generators]
+CMakeDeps
+CMakeToolchain
