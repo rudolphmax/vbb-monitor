@@ -1,5 +1,5 @@
 [requires]
-curlpp/0.8.1.cci.20240530
+fmt/11.2.0
 
 [generators]
 CMakeDeps

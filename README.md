@@ -27,3 +27,5 @@ $ make build-debug
 ```
 
 The built executable can then be found under `build/vbb_monitor`.
+
+For [zed](https://zed.dev) users, a debugger config is provided.
