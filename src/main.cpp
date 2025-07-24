@@ -8,13 +8,13 @@ int main() {
   fmt::print("Hello World!\n");
 
   const std::string host = "example.com";
-  const std::string port = "80";
+  const std::string port = "443";
   const std::string target = "/";
   const std::string version = "1.1";
 
   http::response<http::dynamic_body> response;
 
-  const char* error = network::get("example.com", "80", "/", &response);
+  const char* error = network::get("example.com", "443", "/", &response);
 
   if (error != NULL) {
     std::cout << error << std::endl;
