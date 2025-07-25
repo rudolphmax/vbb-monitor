@@ -10,6 +10,8 @@ using tcp = net::ip::tcp;
 
 namespace network {
   const char* get(const char* host, const char* port, const char* target, http::response<http::dynamic_body> *response);
+
+  std::string url_encode(const std::string& decoded);
 }
 
 #endif

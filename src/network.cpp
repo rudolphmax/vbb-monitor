@@ -8,6 +8,8 @@
 #include <boost/asio/connect.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <curl/curl.h>
+#include <string>
 
 #include "network.hpp"
 
@@ -44,6 +46,7 @@ const char* network::get(const char* host, const char* port, const char* target,
     http::request<http::string_body> req{ http::verb::get, target, 11 };
     req.set(http::field::host, host);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    req.set(http::field::content_type, "application/json");
 
     http::write(stream, req);
 
@@ -59,11 +62,21 @@ const char* network::get(const char* host, const char* port, const char* target,
       ec = {};
     }
 
-    if(ec) throw beast::system_error{ec};
+    if(ec && ec != net::ssl::error::stream_truncated) {
+      static std::string message = ec.message();
+      return message.c_str();
+    }
 
   } catch (std::exception &e) {
     return e.what();
   }
 
   return NULL;
+}
+
+std::string network::url_encode(const std::string& decoded) {
+    const auto encoded_value = curl_easy_escape(nullptr, decoded.c_str(), static_cast<int>(decoded.length()));
+    std::string result(encoded_value);
+    curl_free(encoded_value);
+    return result;
 }
