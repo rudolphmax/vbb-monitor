@@ -10,13 +10,17 @@ const char* API_BASE = "/api/fahrinfo/latest";
 const api::api_response api::get(const api::api_request request) {
   std::string target = API_BASE;
 
-  if (!request.path.starts_with("/")) {
+  // Ensuring leading slash before path
+  if (!(request.path.substr(0, 1) == "/")) {
     target += std::string("/");
   }
 
   target += request.path;
 
-  if (!request.path.ends_with("/")) target += "/";
+  // Adding trailing slash to path before args
+  if (!(request.path.substr(request.path.length()-1, 1) == "/")) {
+    target += "/";
+  }
 
   for (int i = 0; i < MAX_API_PARAMS; i++) {
     if (request.api_params[i].key.empty()) break;
@@ -33,7 +37,7 @@ const api::api_response api::get(const api::api_request request) {
   boost::beast::http::response<boost::beast::http::dynamic_body> beast_res;
   const char* error = network::get(API_HOST, API_PORT, target.c_str(), &beast_res);
 
-  if (error) return api::api_response(error, nullptr);
+  if (error) return api::api_response({ error, nullptr });
 
-  return api::api_response(nullptr, json::parse(boost::beast::buffers_to_string(beast_res.body().data())));
+  return api::api_response({ nullptr, json::parse(boost::beast::buffers_to_string(beast_res.body().data())) });
 }
