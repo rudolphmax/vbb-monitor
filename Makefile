@@ -1,8 +1,8 @@
 install:
-	conan install . --build=missing --output-folder=build --settings=build_type=Release
+	conan install . --build=missing --settings=build_type=Release
 
 install-debug:
-	conan install . --build=missing --output-folder=build --settings=build_type=Debug
+	conan install . --build=missing --settings=build_type=Debug
 
 prebuild:
 	cd ./build

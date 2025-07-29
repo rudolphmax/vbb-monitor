@@ -13,7 +13,7 @@
     "env": {
       "ROOT_CERT_BUNDLE_LOCATION": "/opt/homebrew/etc/ca-certificates/cert.pem"
     },
-    "program": "$ZED_WORKTREE_ROOT/build/vbb_monitor",
+    "program": "$ZED_WORKTREE_ROOT/build/Debug/vbb_monitor",
     "request": "launch",
     "adapter": "CodeLLDB"
   }
