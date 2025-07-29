@@ -1,10 +1,14 @@
-install:
+git-hooks-install:
+	pre-commit install
+
+install: git-hooks-install
 	conan install . --build=missing --settings=build_type=Release
 
-install-debug:
+install-debug: git-hooks-install
 	conan install . --build=missing --settings=build_type=Debug
 
 prebuild:
+	pre-commit --version
 	cd ./build
 
 postbuild:

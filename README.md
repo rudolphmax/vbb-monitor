@@ -1,10 +1,15 @@
 # VBB Monitor
 
+Monitoring VBB stops at home using the dedicated API.
+
+Access to the VBB API is required for usage, refer to VBB for further information.
+
 ## Prerequisites
 
 - clang / gcc (c++ compiler)
 - CMake >= 3.23
 - [conan](https://conan.io/)
+- [pre-commit](https://pre-commit.com)
 
 
 ## Building from source
@@ -16,9 +21,19 @@ $ make install
 $ make build
 ```
 
-The built executable can then be found under `build/vbb_monitor`.
+The built executable can then be found under `build/Release/vbb_monitor`.
 
-If needed, specify the path to your SSL root certificate bundle by setting the `ROOT_CERT_BUNDLE_LOCATION` environment variable (e.g. `export ROOT_CERT_BUNDLE_LOCATION=/path/to/certificates.pem`).
+
+## Running
+
+The monitor is configured with environment variables.
+
+| ENV Variable                | Description                                         | Example                       |
+| --------------------------- | --------------------------------------------------- | ----------------------------- |
+| `ROOT_CERT_BUNDLE_LOCATION` | (optional) Path to your SSL root certificate bundle | `"/path/to/certificates.pem"` |
+| `VBBMON_ACCESS_ID`          | Your HAFAS Access-ID                                | Refer to HAFAS documentation  |
+| `VBBMON_STOP_ID`            | The id of the stop to monitor                       | Refer to HAFAS documentation  |
+| `VBBMON_REFRESH_INTERVAL`   | The data refresh interval in ms                     | 25000                         |
 
 
 ## Developing
@@ -30,8 +45,6 @@ $ make install-debug
 $ make build-debug
 ```
 
-The built executable can then be found under `build/vbb_monitor`.
-
-If needed, specify the path to your SSL root certificate bundle by setting the `ROOT_CERT_BUNDLE_LOCATION` environment variable (e.g. `export ROOT_CERT_BUNDLE_LOCATION=/path/to/certificates.pem`).
+The built executable can then be found under `build/Debug/vbb_monitor`.
 
 For [zed](https://zed.dev) users, a debugger config is provided.
