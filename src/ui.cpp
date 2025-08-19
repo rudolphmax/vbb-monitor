@@ -65,7 +65,7 @@ void departure_list(Screen screen, const api::api_request request, int REFRESH_I
         departure_time_element = bold(text(fmt::format("{}\n", dmin)));
 
       } else {
-        departure_time_element = bold(text(fmt::format("{}:{}\n", tm.tm_hour, tm.tm_min)));
+        departure_time_element = bold(text(fmt::format("{}:{}\n", tm.tm_hour - 1, tm.tm_min)));
       }
 
       if (is_realtime) {
