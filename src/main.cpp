@@ -1,63 +1,12 @@
-#include <chrono>
 #include <cstddef>
 #include <cstdlib>
 #include <ctime>
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <boost/beast.hpp>
-#include <thread>
 
 #include "api.hpp"
-
-void departureList(const api::api_request request, int REFRESH_INTERVAL) {
-  while (true) {
-    api::api_response res = api::get(request);
-
-    if (res.error) {
-      fmt::print("{}", res.error);
-      continue;
-    }
-
-    json departures = res.data["Departure"];
-
-    for (json& departure : departures) {
-      fmt::print("{} {} ", (std::string) departure["name"], (std::string) departure["direction"]);
-
-      std::stringstream timestring;
-      bool is_realtime = false;
-
-      if (departure.contains("rtTime") && departure.contains("rtDate")) {
-        timestring << (std::string) departure["rtDate"] << " " << (std::string) departure["rtTime"];
-        is_realtime = true;
-      } else {
-        timestring << (std::string) departure["date"] << "" << (std::string) departure["time"];
-      }
-
-      std::tm tm = {};
-      timestring >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
-
-      std::time_t now_tt = time(nullptr);
-      struct tm now_c = *localtime(&now_tt);
-
-      int dmin = std::floor(std::difftime(std::mktime(&tm), now_tt) / 60 - 60);
-
-      if (dmin <= 0) {
-        fmt::print("now{}\n", is_realtime ? " *" : "");
-        continue;
-
-      } else if (dmin <= 10) {
-        fmt::print("{}{}\n", dmin, is_realtime ? " *" : "");
-        continue;
-      }
-
-      fmt::print("{}:{}\n", tm.tm_hour, tm.tm_min);
-    }
-
-    fmt::print("\n\n");
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(REFRESH_INTERVAL));
-  }
-}
+#include "ui.hpp"
 
 int main() {
   int REFRESH_INTERVAL;
@@ -91,8 +40,8 @@ int main() {
     }
   };
 
-  std::thread t(departureList, request, REFRESH_INTERVAL);
-  t.join();
+  auto screen = init_ui();
+  start_ui(screen, request, REFRESH_INTERVAL);
 
   return EXIT_SUCCESS;
 }
