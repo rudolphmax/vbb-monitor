@@ -10,6 +10,7 @@ find_package(fmt REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(curl REQUIRED)
 find_package(ftxui REQUIRED)
+find_package(argparse REQUIRED)
 
 add_executable(vbb_monitor
   src/main.cpp
@@ -26,3 +27,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(${PROJECT_NAME} PRIVATE CURL::libcurl)
 target_link_libraries(${PROJECT_NAME} PRIVATE ftxui::ftxui)
+target_link_libraries(${PROJECT_NAME} PRIVATE argparse::argparse)

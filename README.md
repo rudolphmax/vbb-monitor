@@ -21,14 +21,22 @@ $ make install
 $ make build
 ```
 
-The built executable can then be found under `build/Release/vbb_monitor`.
+The built executable can then be found under `build/vbb_monitor`.
 
 For development, use `make install-debug` and `make build-debug` to create a debug build. [Zed](https://zed.dev) users can use the provided debugger config.
 
 
 ## Running
 
-The monitor is configured with environment variables.
+Simply run the built executable:
+
+```bash
+$ ./build/vbb_monitor
+```
+
+Necessary information has to specified via command line options (recommended, for a list run with `--help`) or environment variables (see below).
+
+### Environment Variables
 
 | ENV Variable                | Description                                         | Example                       |
 | --------------------------- | --------------------------------------------------- | ----------------------------- |
