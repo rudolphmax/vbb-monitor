@@ -2,10 +2,10 @@ git-hooks-install:
 	pre-commit install
 
 install: git-hooks-install
-	conan install . --build=missing --settings=build_type=Release
+	conan install . --build=missing -of=build --settings=build_type=Release
 
 install-debug: git-hooks-install
-	conan install . --build=missing --settings=build_type=Debug
+	conan install . --build=missing -of=build --settings=build_type=Debug
 
 prebuild:
 	pre-commit --version
