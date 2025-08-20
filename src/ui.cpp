@@ -28,8 +28,8 @@ Element text_element(std::string content, Color bg_color = Color::Black, Color f
 
 Element time_element(std::string time, bool is_realtime = false, bool is_soon = false) {
   return cell_element({
-    is_soon ? bold(text(time)) : text(time) | flex,
-    is_realtime ? text(" *") : text(" "),
+    (is_soon ? bold(text(time)) : text(time)) | flex,
+    is_realtime ? text(" *") : text(""),
   });
 }
 
