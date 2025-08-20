@@ -1,4 +1,5 @@
 #include <ftxui/dom/node.hpp>
+#include <sstream>
 #include <thread>
 #include <chrono>
 #include <fmt/format.h>
@@ -91,16 +92,19 @@ void departure_list(Screen screen, const api::api_request request, int REFRESH_I
         timestring << (std::string) departure["rtDate"] << " " << (std::string) departure["rtTime"];
         is_realtime = true;
       } else {
-        timestring << (std::string) departure["date"] << "" << (std::string) departure["time"];
+        timestring << (std::string) departure["date"] << " " << (std::string) departure["time"];
       }
 
       std::tm tm = {};
+      timestring.imbue(std::locale("de_DE.utf-8"));
       timestring >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
 
       std::time_t now_tt = time(nullptr);
       struct tm now_c = *localtime(&now_tt);
 
-      int dmin = std::floor(std::difftime(std::mktime(&tm), now_tt) / 60 - 60);
+      tm.tm_isdst = now_c.tm_isdst;
+
+      int dmin = std::floor(std::difftime(std::mktime(&tm), now_tt) / 60);
 
       Element departure_time_element;
 
@@ -119,8 +123,12 @@ void departure_list(Screen screen, const api::api_request request, int REFRESH_I
         );
 
       } else {
+        std::ostringstream oss;
+        oss.imbue(std::locale("de_DE.utf-8"));
+        oss << std::put_time(&tm, "%H:%M");
+
         departure_time_element = time_element(
-          fmt::format("{}:{}\n", tm.tm_hour - 1, tm.tm_min),
+          oss.str(),
           is_realtime
         );
       }
