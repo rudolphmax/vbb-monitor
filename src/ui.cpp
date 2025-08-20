@@ -26,27 +26,48 @@ Element text_element(std::string content, Color bg_color = Color::Black, Color f
   return cell_element({ text(content) }, bg_color, fg_color);
 }
 
-Element time_element(std::string time, bool is_realtime = false, bool is_soon = false) {
+Element time_element(std::string time, std::string delay = "", bool is_realtime = false, bool is_soon = false) {
   return cell_element({
+    is_realtime ? text("* ") : text("  "),
     (is_soon ? bold(text(time)) : text(time)) | flex,
-    is_realtime ? text(" *") : text(""),
+    text(" "),
+    delay.empty() ? text("    ") : color(Color::Red, text(fmt::format("{:4}", delay.substr(0, 4)))),
   });
 }
 
-void add_line(Elements columns[3], Element name, Element direction, Element time) {
+void add_line(Elements columns[3], Element name, Element direction, Element time, bool is_cancelled = false) {
   columns[0].push_back(name);
-  columns[1].push_back(direction);
-  columns[2].push_back(time);
+  columns[1].push_back(is_cancelled ? (direction | strikethrough | dim) : direction);
+  columns[2].push_back(is_cancelled ? color(Color::Red, text(" cancelled ")) : time);
+}
+
+// TODO: refactor into utils
+std::string get_delay(int drt) {
+  if (drt == 0) return "";
+
+  return "+" + std::to_string(drt);
+}
+
+// TODO: refactor into utils
+std::tm* parse_time(std::tm* target_tm, std::string date, std::string time, int is_dst) {
+  std::stringstream timestring;
+
+  timestring << (std::string) date << " " << time;
+  timestring.imbue(std::locale("de_DE.utf-8"));
+  timestring >> std::get_time(target_tm, "%Y-%m-%d %H:%M:%S");
+
+  target_tm->tm_isdst = is_dst;
+
+  return target_tm;
 }
 
 Element get_document(Elements columns[3]) {
   return (
     hbox({
       vbox(columns[0]),
-      separatorEmpty(),
-      separatorEmpty(),
+      text(" "),
       vbox(columns[1]) | flex,
-      separatorEmpty(),
+      text(" "),
       vbox(columns[2])
     })
   );
@@ -85,32 +106,37 @@ void departure_list(Screen screen, const api::api_request request, int REFRESH_I
 
       auto direction = text_element((std::string) departure["direction"]);
 
-      std::stringstream timestring;
       bool is_realtime = false;
 
-      if (departure.contains("rtTime") && departure.contains("rtDate")) {
-        timestring << (std::string) departure["rtDate"] << " " << (std::string) departure["rtTime"];
-        is_realtime = true;
-      } else {
-        timestring << (std::string) departure["date"] << " " << (std::string) departure["time"];
-      }
-
       std::tm tm = {};
-      timestring.imbue(std::locale("de_DE.utf-8"));
-      timestring >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+      std::tm rt_tm = {};
 
       std::time_t now_tt = time(nullptr);
       struct tm now_c = *localtime(&now_tt);
 
-      tm.tm_isdst = now_c.tm_isdst;
+      parse_time(&tm, departure["date"], departure["time"], now_c.tm_isdst);
 
-      int dmin = std::floor(std::difftime(std::mktime(&tm), now_tt) / 60);
+      if (departure.contains("rtTime") && departure.contains("rtDate")) {
+        parse_time(&rt_tm, departure["rtDate"], departure["rtTime"], now_c.tm_isdst);
+        is_realtime = true;
+      }
+
+      int dmin;
+      int drt = 0;
+
+      if (is_realtime) {
+        dmin = std::floor(std::difftime(std::mktime(&rt_tm), now_tt) / 60);
+        drt = std::floor(std::difftime(std::mktime(&rt_tm), std::mktime(&tm)) / 60);
+      } else {
+        dmin = std::floor(std::difftime(std::mktime(&tm), now_tt) / 60);
+      }
 
       Element departure_time_element;
 
       if (dmin <= 0) {
         departure_time_element = time_element(
           "now\n",
+          "",
           is_realtime,
           true
         );
@@ -118,6 +144,7 @@ void departure_list(Screen screen, const api::api_request request, int REFRESH_I
       } else if (dmin <= 10) {
         departure_time_element = time_element(
           fmt::format("{}\n", dmin),
+          get_delay(drt),
           is_realtime,
           true
         );
@@ -125,15 +152,21 @@ void departure_list(Screen screen, const api::api_request request, int REFRESH_I
       } else {
         std::ostringstream oss;
         oss.imbue(std::locale("de_DE.utf-8"));
-        oss << std::put_time(&tm, "%H:%M");
+
+        if (is_realtime) {
+          oss << std::put_time(&rt_tm, "%H:%M");
+        } else {
+          oss << std::put_time(&tm, "%H:%M");
+        }
 
         departure_time_element = time_element(
           oss.str(),
+          get_delay(drt),
           is_realtime
         );
       }
 
-      add_line(columns, name, direction, departure_time_element);
+      add_line(columns, name, direction, departure_time_element, departure.contains("cancelled") && departure["cancelled"]);
     }
 
     refresh_screen(screen, columns);
