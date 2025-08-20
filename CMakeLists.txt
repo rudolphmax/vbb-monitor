@@ -20,6 +20,8 @@ add_executable(vbb_monitor
   src/api.hpp
   src/ui.cpp
   src/ui.hpp
+  src/utils.cpp
+  src/utils.hpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENSSL_LIBRARIES} -lm)

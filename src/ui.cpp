@@ -1,10 +1,15 @@
 #include <ftxui/dom/node.hpp>
-#include <sstream>
 #include <thread>
-#include <chrono>
 #include <fmt/format.h>
 
+#include "utils.hpp"
 #include "ui.hpp"
+
+std::string get_delay(int drt) {
+  if (drt == 0) return "";
+
+  return "+" + std::to_string(drt);
+}
 
 Element cell_element(Elements content, Color bg_color = Color::Black, Color fg_color = Color::White) {
   return (
@@ -39,26 +44,6 @@ void add_line(Elements columns[3], Element name, Element direction, Element time
   columns[0].push_back(name);
   columns[1].push_back(is_cancelled ? (direction | strikethrough | dim) : direction);
   columns[2].push_back(is_cancelled ? color(Color::Red, text(" cancelled ")) : time);
-}
-
-// TODO: refactor into utils
-std::string get_delay(int drt) {
-  if (drt == 0) return "";
-
-  return "+" + std::to_string(drt);
-}
-
-// TODO: refactor into utils
-std::tm* parse_time(std::tm* target_tm, std::string date, std::string time, int is_dst) {
-  std::stringstream timestring;
-
-  timestring << (std::string) date << " " << time;
-  timestring.imbue(std::locale("de_DE.utf-8"));
-  timestring >> std::get_time(target_tm, "%Y-%m-%d %H:%M:%S");
-
-  target_tm->tm_isdst = is_dst;
-
-  return target_tm;
 }
 
 Element get_document(Elements columns[3]) {
