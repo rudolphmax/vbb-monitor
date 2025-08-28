@@ -65,9 +65,9 @@ void refresh_screen(Screen& screen, Elements columns[3]) {
   screen.Print();
 }
 
-void departure_list(Screen screen, const api::api_request request, int REFRESH_INTERVAL) {
+void departure_list(Screen screen, const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL) {
   while (true) {
-    api::api_response res = api::get(request);
+    api::api_response res = api::get(api_config, request);
 
     if (res.error) {
       fmt::print("{}", res.error);
@@ -166,7 +166,7 @@ Screen init_ui() {
   return screen;
 }
 
-void start_ui(Screen screen, const api::api_request request, int REFRESH_INTERVAL) {
-  std::thread t(departure_list, screen, request, REFRESH_INTERVAL);
+void start_ui(Screen screen, const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL) {
+  std::thread t(departure_list, screen, api_config, request, REFRESH_INTERVAL);
   t.join();
 }
