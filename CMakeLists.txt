@@ -6,9 +6,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(OPENSSL_USE_STATIC_LIBS TRUE)
 find_package(OpenSSL REQUIRED)
+find_package(Boost REQUIRED)
 find_package(fmt REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(curl REQUIRED)
+find_package(CURL REQUIRED)
 find_package(ftxui REQUIRED)
 find_package(argparse REQUIRED)
 
@@ -25,6 +26,7 @@ add_executable(vbb_monitor
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENSSL_LIBRARIES} -lm)
+target_link_libraries(${PROJECT_NAME} PRIVATE boost::boost)
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(${PROJECT_NAME} PRIVATE CURL::libcurl)

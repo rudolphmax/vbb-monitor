@@ -9,3 +9,6 @@ argparse/3.2
 [generators]
 CMakeDeps
 CMakeToolchain
+
+[options]
+boost/*:header_only=True
