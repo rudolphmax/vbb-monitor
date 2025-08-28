@@ -3,12 +3,8 @@
 #include "api.hpp"
 #include "network.hpp"
 
-const char* API_HOST = "vbb-demo.demo2.hafas.cloud";
-const char* API_PORT = "443";
-const char* API_BASE = "/api/fahrinfo/latest";
-
-const api::api_response api::get(const api::api_request request) {
-  std::string target = API_BASE;
+const api::api_response api::get(const api::api_config config, const api::api_request request) {
+  std::string target = config.base;
 
   // Ensuring leading slash before path
   if (!(request.path.substr(0, 1) == "/")) {
@@ -35,7 +31,7 @@ const api::api_response api::get(const api::api_request request) {
   }
 
   boost::beast::http::response<boost::beast::http::dynamic_body> beast_res;
-  const char* error = network::get(API_HOST, API_PORT, target.c_str(), &beast_res);
+  const char* error = network::get(config.host.c_str(), config.port.c_str(), target.c_str(), &beast_res);
 
   if (error) return api::api_response({ error, nullptr });
 

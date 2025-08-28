@@ -12,6 +12,17 @@
 int main(int argc, char *argv[]) {
   argparse::ArgumentParser program("program_name");
 
+  program.add_argument("-h", "--host")
+    .help("The hostname of the HAFAS API, e.g.: hafas.example.com");
+
+  program.add_argument("-p", "--port")
+    .help("The port of the HAFAS API, e.g.: 443 for SSL or 80 for plain http.")
+    .default_value("80");
+
+  program.add_argument("-b", "--base")
+    .help("The base url of API, e.g.: /api/info/v2")
+    .default_value("");
+
   program.add_argument("-i", "--access-id")
     .help("The HAFAS Access-ID to use with the API.");
 
@@ -32,12 +43,36 @@ int main(int argc, char *argv[]) {
     std::exit(1);
   }
 
+  std::string API_HOST;
+  std::string API_PORT;
+  std::string API_BASE;
   std::string ACCESS_ID;
   std::string STOP_ID;
   int REFRESH_INTERVAL;
 
+  if (program.is_used("-h")) {
+    API_HOST = program.get<std::string>("-h");
+
+  } else if (std::getenv("VBBMON_API_HOST")) {
+    API_HOST = std::getenv("VBBMON_API_HOST");
+  }
+
+  if (!program.is_used("-p") && std::getenv("VBBMON_API_PORT")) {
+    API_PORT = std::getenv("VBBMON_API_PORT");
+
+  } else {
+    API_PORT = program.get<std::string>("-p");
+  }
+
+  if (!program.is_used("-b") && std::getenv("VBBMON_API_BASE")) {
+    API_BASE = std::getenv("VBBMON_API_BASE");
+
+  } else {
+    API_BASE = program.get<std::string>("-b");
+  }
+
   if (program.is_used("-i")) {
-    ACCESS_ID = program.get<std::string>("-i");
+      ACCESS_ID = program.get<std::string>("-i");
 
   } else if (std::getenv("VBBMON_ACCESS_ID")) {
     ACCESS_ID = std::getenv("VBBMON_ACCESS_ID");
@@ -56,15 +91,26 @@ int main(int argc, char *argv[]) {
     REFRESH_INTERVAL = REFRESH_INTERVAL = program.get<int>("-r");
   }
 
+  if (API_HOST.empty()) {
+    fmt::print("No API hostname provided, set VBBMON_API_HOST or use the command-line argument.\n");
+    return EXIT_FAILURE;
+  }
+
   if (ACCESS_ID.empty()) {
-    fmt::print("No Access Id provided, set VBBMON_ACCESS_ID.\n");
+    fmt::print("No Access Id provided, set VBBMON_ACCESS_ID or use the command-line argument.\n");
     return EXIT_FAILURE;
   }
 
   if (STOP_ID.empty()) {
-    fmt::print("No Stop Id provided, set VBBMON_STOP_ID.\n");
+    fmt::print("No Stop Id provided, set VBBMON_STOP_ID or use the command-line argument.\n");
     return EXIT_FAILURE;
   }
+
+  api::api_config api_config = {
+    .host = API_HOST,
+    .port = API_PORT,
+    .base = API_BASE
+  };
 
   api::api_request request = {
     .path = "/departureBoard",
@@ -77,7 +123,7 @@ int main(int argc, char *argv[]) {
   };
 
   auto screen = init_ui();
-  start_ui(screen, request, REFRESH_INTERVAL);
+  start_ui(screen, api_config, request, REFRESH_INTERVAL);
 
   return EXIT_SUCCESS;
 }

@@ -38,9 +38,12 @@ Necessary information has to specified via command line options (recommended, fo
 
 ### Environment Variables
 
-| ENV Variable                | Description                                         | Example                       |
-| --------------------------- | --------------------------------------------------- | ----------------------------- |
-| `ROOT_CERT_BUNDLE_LOCATION` | (optional) Path to your SSL root certificate bundle | `"/path/to/certificates.pem"` |
-| `VBBMON_ACCESS_ID`          | Your HAFAS Access-ID                                | Refer to HAFAS documentation  |
-| `VBBMON_STOP_ID`            | The id of the stop to monitor                       | Refer to HAFAS documentation  |
-| `VBBMON_REFRESH_INTERVAL`   | The data refresh interval in ms                     | 25000                         |
+| ENV Variable                | Description                                         | Example                           |
+| --------------------------- | --------------------------------------------------- | --------------------------------- |
+| `ROOT_CERT_BUNDLE_LOCATION` | (optional) Path to your SSL root certificate bundle | `"/path/to/certificates.pem"`     |
+| `VBBMON_API_HOST`           | The hostname of the HAFAS API                       | hafas.example.com"                |
+| `VBBMON_API_PORT`           | The port of the HAFAS API                           | 443 for SSL or 80 for plain http. |
+| `VBBMON_API_BASE`           | The base url of API                                 | /api/info/v2                      |
+| `VBBMON_ACCESS_ID`          | Your HAFAS Access-ID                                | Refer to HAFAS documentation      |
+| `VBBMON_STOP_ID`            | The id of the stop to monitor                       | Refer to HAFAS documentation      |
+| `VBBMON_REFRESH_INTERVAL`   | The data refresh interval in ms                     | 25000                             |

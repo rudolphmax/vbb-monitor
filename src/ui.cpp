@@ -8,7 +8,7 @@
 std::string get_delay(int drt) {
   if (drt == 0) return "";
 
-  return "+" + std::to_string(drt);
+  return fmt::format("{:+}", drt);
 }
 
 Element cell_element(Elements content, Color bg_color = Color::Black, Color fg_color = Color::White) {

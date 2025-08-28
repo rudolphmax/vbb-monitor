@@ -10,6 +10,12 @@ using json = nlohmann::json;
 #define MAX_API_PARAMS 50
 
 namespace api {
+  typedef struct api_config {
+    std::string host;
+    std::string port;
+    std::string base;
+  } api_config;
+
   typedef struct api_response {
     const char* error;
     const json data;
@@ -25,7 +31,7 @@ namespace api {
     const api_param api_params[MAX_API_PARAMS];
   };
 
-  const api_response get(const api::api_request request);
+  const api_response get(const api::api_config config, const api::api_request request);
 }
 
 #endif
