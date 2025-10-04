@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <boost/beast.hpp>
 #include <argparse/argparse.hpp>
+#include <string>
 
 #include "api.hpp"
 #include "ui.hpp"
@@ -34,6 +35,11 @@ int main(int argc, char *argv[]) {
     .default_value(25000)
     .scan<'d', int>();
 
+  program.add_argument("-l", "--lines")
+    .help("The amount of lines (departures) to display.")
+    .default_value(10)
+    .scan<'d', int>();
+
   try {
     program.parse_args(argc, argv);
   }
@@ -49,6 +55,7 @@ int main(int argc, char *argv[]) {
   std::string ACCESS_ID;
   std::string STOP_ID;
   int REFRESH_INTERVAL;
+  int NUM_LINES;
 
   if (program.is_used("-h")) {
     API_HOST = program.get<std::string>("-h");
@@ -91,6 +98,12 @@ int main(int argc, char *argv[]) {
     REFRESH_INTERVAL = REFRESH_INTERVAL = program.get<int>("-r");
   }
 
+  if (!program.is_used("-l") && std::getenv("VBBMON_NUM_LINES")) {
+    NUM_LINES = std::stoi(std::getenv("VBBMON_NUM_LINES"));
+  } else {
+    NUM_LINES = NUM_LINES = program.get<int>("-l");
+  }
+
   if (API_HOST.empty()) {
     fmt::print("No API hostname provided, set VBBMON_API_HOST or use the command-line argument.\n");
     return EXIT_FAILURE;
@@ -117,7 +130,7 @@ int main(int argc, char *argv[]) {
     .api_params = {
       { "accessId", ACCESS_ID },
       { "id", STOP_ID },
-      { "maxJourneys", "10" },
+      { "maxJourneys", std::to_string(NUM_LINES) },
       { "format", "json" }
     }
   };

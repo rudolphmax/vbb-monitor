@@ -47,3 +47,4 @@ Necessary information has to specified via command line options (recommended, fo
 | `VBBMON_ACCESS_ID`          | Your HAFAS Access-ID                                | Refer to HAFAS documentation      |
 | `VBBMON_STOP_ID`            | The id of the stop to monitor                       | Refer to HAFAS documentation      |
 | `VBBMON_REFRESH_INTERVAL`   | The data refresh interval in ms                     | 25000                             |
+| `VBBMON_NUM_LINES`          | The number of lines / departures fetched            | 10                                |
