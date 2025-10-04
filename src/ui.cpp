@@ -1,3 +1,4 @@
+#include <ftxui/dom/elements.hpp>
 #include <ftxui/dom/node.hpp>
 #include <thread>
 #include <fmt/format.h>
@@ -11,24 +12,31 @@ std::string get_delay(int drt) {
   return fmt::format("{:+}", drt);
 }
 
+
 Element cell_element(Elements content, Color bg_color = Color::Black, Color fg_color = Color::White) {
   return (
     bgcolor(
       bg_color,
       color(
         fg_color,
-        hbox(
-          separatorEmpty(),
-          content,
-          separatorEmpty()
+        vbox(
+          text(" "),
+          hbox(
+            text(" "),
+            text(" "),
+            content,
+            text(" "),
+            text(" ")
+          ),
+          text(" ")
         )
       )
     )
   );
 }
 
-Element text_element(std::string content, Color bg_color = Color::Black, Color fg_color = Color::White) {
-  return cell_element({ text(content) }, bg_color, fg_color);
+Element text_element(std::string content, Color bg_color = Color::Black, Color fg_color = Color::White, bool is_bold = false) {
+  return cell_element({ is_bold ? text(content) | bold : text(content)}, bg_color, fg_color);
 }
 
 Element time_element(std::string time, std::string delay = "", bool is_realtime = false, bool is_soon = false) {
@@ -86,7 +94,8 @@ void departure_list(Screen screen, const api::api_config api_config, const api::
       auto name = text_element(
         departure["name"],
         Color::RGB(departure_bg_color["r"], departure_bg_color["g"], departure_bg_color["b"]),
-        Color::RGB(departure_fg_color["r"], departure_fg_color["g"], departure_fg_color["b"])
+        Color::RGB(departure_fg_color["r"], departure_fg_color["g"], departure_fg_color["b"]),
+        true
       );
 
       auto direction = text_element((std::string) departure["direction"]);
