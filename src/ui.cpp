@@ -13,7 +13,7 @@ std::string get_delay(int drt) {
 }
 
 
-Element cell_element(Elements content, Color bg_color = Color::Black, Color fg_color = Color::White) {
+Element cell_element(Elements content, Color bg_color = Color::Black, Color fg_color = Color::White, bool is_big = false) {
   return (
     bgcolor(
       bg_color,
@@ -22,11 +22,11 @@ Element cell_element(Elements content, Color bg_color = Color::Black, Color fg_c
         vbox(
           text(" "),
           hbox(
-            text(" "),
+            is_big ? text(" ") : emptyElement(),
             text(" "),
             content,
             text(" "),
-            text(" ")
+            is_big ? text(" ") : emptyElement()
           ),
           text(" ")
         )
@@ -35,8 +35,8 @@ Element cell_element(Elements content, Color bg_color = Color::Black, Color fg_c
   );
 }
 
-Element text_element(std::string content, Color bg_color = Color::Black, Color fg_color = Color::White, bool is_bold = false) {
-  return cell_element({ is_bold ? text(content) | bold : text(content)}, bg_color, fg_color);
+Element text_element(std::string content, Color bg_color = Color::Black, Color fg_color = Color::White, bool is_bold = false, bool is_big = false) {
+  return cell_element({ is_bold ? text(content) | bold : text(content)}, bg_color, fg_color, is_big);
 }
 
 Element time_element(std::string time, std::string delay = "", bool is_realtime = false, bool is_soon = false) {
@@ -95,6 +95,7 @@ void departure_list(Screen screen, const api::api_config api_config, const api::
         departure["name"],
         Color::RGB(departure_bg_color["r"], departure_bg_color["g"], departure_bg_color["b"]),
         Color::RGB(departure_fg_color["r"], departure_fg_color["g"], departure_fg_color["b"]),
+        true,
         true
       );
 
