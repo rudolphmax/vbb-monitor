@@ -145,8 +145,8 @@ void departure_list(Screen screen, const api::api_config api_config, const api::
         .fg_color = Color::RGB(fg_color["r"], fg_color["g"], fg_color["b"]),
         .direction = departure["direction"],
         .time = "",
-        .is_cancelled = departure.contains("cancelled") && departure["cancelled"],
         .is_realtime = false,
+        .is_cancelled = departure.contains("cancelled") && departure["cancelled"],
         .dmin = 0,
         .drt = 0
       };
