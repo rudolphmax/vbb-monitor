@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstddef>
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/dom/node.hpp>
@@ -175,6 +176,12 @@ void departure_list(Screen screen, const api::api_config api_config, const api::
 
       i++;
     }
+
+    std::stable_sort(
+      departures,
+      departures + NUM_LINES,
+      [](Departure a, Departure b) { return a.dmin < b.dmin; }
+    );
 
     std::vector<Elements> lines;
 
