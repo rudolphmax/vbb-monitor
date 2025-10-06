@@ -1,5 +1,6 @@
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/dom/node.hpp>
+#include <ftxui/screen/color.hpp>
 #include <thread>
 #include <fmt/format.h>
 
@@ -13,68 +14,101 @@ std::string get_delay(int drt) {
 }
 
 
-Element cell_element(Elements content, Color bg_color = Color::Black, Color fg_color = Color::White, bool is_big = false) {
+Element cell_element(Elements content, Color bg_color = Color::Black, Color fg_color = Color::White, bool is_wide = false, bool is_tall = false) {
   return (
     bgcolor(
       bg_color,
       color(
         fg_color,
         vbox(
-          text(" "),
+          is_tall ? text(" ") : emptyElement(),
           hbox(
-            is_big ? text(" ") : emptyElement(),
+            is_wide ? text(" ") : emptyElement(),
             text(" "),
             content,
             text(" "),
-            is_big ? text(" ") : emptyElement()
+            is_wide ? text(" ") : emptyElement()
           ),
-          text(" ")
+          is_tall ? text(" ") : emptyElement()
         )
       )
     )
   );
 }
 
-Element text_element(std::string content, Color bg_color = Color::Black, Color fg_color = Color::White, bool is_bold = false, bool is_big = false) {
-  return cell_element({ is_bold ? text(content) | bold : text(content)}, bg_color, fg_color, is_big);
+Element text_element(std::string content, Color bg_color = Color::Black, Color fg_color = Color::White, bool is_bold = false, bool is_wide = false, bool is_tall = false) {
+  return cell_element({ is_bold ? text(content) | bold : text(content)}, bg_color, fg_color, is_wide, is_tall);
 }
 
 Element time_element(std::string time, std::string delay = "", bool is_realtime = false, bool is_soon = false) {
-  return cell_element({
-    is_realtime ? text("* ") : text("  "),
-    (is_soon ? bold(text(time)) : text(time)) | flex,
-    text(" "),
-    delay.empty() ? text("    ") : color(Color::Red, text(fmt::format("{:4}", delay.substr(0, 4)))),
-  });
-}
-
-void add_line(Elements columns[3], Element name, Element direction, Element time, bool is_cancelled = false) {
-  columns[0].push_back(name);
-  columns[1].push_back(is_cancelled ? (direction | strikethrough | dim) : direction);
-  columns[2].push_back(is_cancelled ? color(Color::Red, text(" cancelled ")) : time);
-}
-
-Element get_document(Elements columns[3]) {
-  return (
-    hbox({
-      vbox(columns[0]),
+  return cell_element(
+    {
+      is_realtime ? text("* ") : text("  "),
+      (is_soon ? bold(text(time)) : text(time)) | flex,
       text(" "),
-      vbox(columns[1]) | flex,
-      text(" "),
-      vbox(columns[2])
-    })
+      delay.empty() ? text("    ") : color(Color::Red, text(fmt::format("{:4}", delay.substr(0, 4)))),
+    },
+    Color::Black, Color::White,
+    false,
+    is_soon
   );
 }
 
-void refresh_screen(Screen& screen, Elements columns[3]) {
+void add_separator_line(std::vector<Elements>* lines) {
+  (*lines).push_back({separatorLight(), separatorLight(), separatorLight()});
+}
+
+void add_line(std::vector<Elements>* lines, Element name, Element direction, Element time, bool is_cancelled = false) {
+  (*lines).push_back({
+    name,
+    separatorEmpty(),
+    vbox(
+      filler(),
+      is_cancelled ? (direction | strikethrough | dim) : direction,
+      filler()
+    ) | flex,
+    separatorEmpty(),
+    vbox(
+      filler(),
+      is_cancelled ? color(Color::Red, text("cancelled ")) : time,
+      filler()
+    )
+  });
+}
+
+Element get_document(std::vector<Elements> lines, std::string timestring) {
+  return vbox({
+    bgcolor(
+      Color::White,
+      color(
+        Color::Black,
+        hbox({
+          filler(),
+          text(timestring),
+          filler(),
+        })
+      )
+    ),
+    gridbox(lines)
+  });
+}
+
+void refresh_screen(Screen& screen, std::vector<Elements> lines, tm current_time) {
   screen.Clear();
 
-  Render(screen, get_document(columns));
+  std::ostringstream oss;
+  oss.imbue(std::locale("de_DE.utf-8"));
+  oss << std::put_time(&current_time, "%H:%M");
+
+  Render(screen, get_document(lines, oss.str()));
   screen.Print();
 }
 
 void departure_list(Screen screen, const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL) {
   while (true) {
+    std::time_t now_tt = time(nullptr);
+    struct tm now_c = *localtime(&now_tt);
+
     api::api_response res = api::get(api_config, request);
 
     if (res.error) {
@@ -85,29 +119,18 @@ void departure_list(Screen screen, const api::api_config api_config, const api::
     json departures = res.data["Departure"];
 
     bool has_horizontal_separator = false;
-    Elements columns[3];
+    std::vector<Elements> lines;
+
+    bool is_previous_line_soon = false;
 
     for (json& departure : departures) {
       json departure_bg_color = departure["ProductAtStop"]["icon"]["backgroundColor"];
       json departure_fg_color = departure["ProductAtStop"]["icon"]["foregroundColor"];
 
-      auto name = text_element(
-        departure["name"],
-        Color::RGB(departure_bg_color["r"], departure_bg_color["g"], departure_bg_color["b"]),
-        Color::RGB(departure_fg_color["r"], departure_fg_color["g"], departure_fg_color["b"]),
-        true,
-        true
-      );
-
-      auto direction = text_element((std::string) departure["direction"]);
-
       bool is_realtime = false;
 
       std::tm tm = {};
       std::tm rt_tm = {};
-
-      std::time_t now_tt = time(nullptr);
-      struct tm now_c = *localtime(&now_tt);
 
       parse_time(&tm, departure["date"], departure["time"], now_c.tm_isdst);
 
@@ -161,10 +184,29 @@ void departure_list(Screen screen, const api::api_config api_config, const api::
         );
       }
 
-      add_line(columns, name, direction, departure_time_element, departure.contains("cancelled") && departure["cancelled"]);
+      auto name = text_element(
+        departure["name"],
+        Color::RGB(departure_bg_color["r"], departure_bg_color["g"], departure_bg_color["b"]),
+        Color::RGB(departure_fg_color["r"], departure_fg_color["g"], departure_fg_color["b"]),
+        true,
+        true,
+        dmin <= 10
+      );
+
+      auto direction = text_element((std::string) departure["direction"]);
+
+      if (dmin <= 10) {
+        is_previous_line_soon = true;
+      } else if (is_previous_line_soon == true) {
+        is_previous_line_soon = false;
+
+        add_separator_line(&lines);
+      }
+
+      add_line(&lines, name, direction, departure_time_element, departure.contains("cancelled") && departure["cancelled"]);
     }
 
-    refresh_screen(screen, columns);
+    refresh_screen(screen, lines, now_c);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(REFRESH_INTERVAL));
   }
