@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
   };
 
   auto screen = init_ui();
-  start_ui(screen, api_config, request, REFRESH_INTERVAL);
+  start_ui(screen, api_config, request, REFRESH_INTERVAL, NUM_LINES);
 
   return EXIT_SUCCESS;
 }
