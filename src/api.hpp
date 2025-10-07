@@ -7,8 +7,6 @@
 
 using json = nlohmann::json;
 
-#define MAX_API_PARAMS 50
-
 namespace api {
   typedef struct api_config {
     std::string host;
@@ -28,7 +26,7 @@ namespace api {
 
   struct api_request {
     const std::string path; // TODO: make enum
-    const api_param api_params[MAX_API_PARAMS];
+    const json api_params;
   };
 
   const api_response get(const api::api_config config, const api::api_request request);

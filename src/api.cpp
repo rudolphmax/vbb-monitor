@@ -18,16 +18,16 @@ const api::api_response api::get(const api::api_config config, const api::api_re
     target += "/";
   }
 
-  for (int i = 0; i < MAX_API_PARAMS; i++) {
-    if (request.api_params[i].key.empty()) break;
+  for (auto param = request.api_params.begin(); param != request.api_params.end(); ++param) {
+    if (param.key().empty()) break;
 
-    if (i == 0) {
+    if (param == request.api_params.begin()) {
       target += "?";
     } else {
       target += "&";
     }
 
-    target += request.api_params[i].key + "=" + network::url_encode(request.api_params[i].value);
+    target += param.key() + "=" + network::url_encode(param.value());
   }
 
   boost::beast::http::response<boost::beast::http::dynamic_body> beast_res;

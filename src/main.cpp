@@ -24,6 +24,10 @@ int main(int argc, char *argv[]) {
     .help("The base url of API, e.g.: /api/info/v2")
     .default_value("");
 
+  program.add_argument("--api-params")
+    .help("Additional parameters passed to the API. Provided as a JSON string.")
+    .default_value("");
+
   program.add_argument("-i", "--access-id")
     .help("The HAFAS Access-ID to use with the API.");
 
@@ -54,6 +58,7 @@ int main(int argc, char *argv[]) {
   std::string API_BASE;
   std::string ACCESS_ID;
   std::string STOP_ID;
+  std::string raw_api_params;
   int REFRESH_INTERVAL;
   int NUM_LINES;
 
@@ -76,6 +81,13 @@ int main(int argc, char *argv[]) {
 
   } else {
     API_BASE = program.get<std::string>("-b");
+  }
+
+  if (!program.is_used("-b") && std::getenv("VBBMON_API_BASE")) {
+    raw_api_params = std::getenv("VBBMON_API_PARAMS");
+
+  } else {
+    raw_api_params = program.get<std::string>("--api-params");
   }
 
   if (program.is_used("-i")) {
@@ -125,14 +137,25 @@ int main(int argc, char *argv[]) {
     .base = API_BASE
   };
 
+  json base_api_params = {
+    { "accessId", ACCESS_ID },
+    { "id", STOP_ID },
+    { "maxJourneys", std::to_string(NUM_LINES) },
+    { "format", "json" }
+  };
+
+  json api_params = json::object();
+
+  // TODO: add error handling
+  if (!raw_api_params.empty()) {
+    api_params = json::parse(raw_api_params);
+  }
+
+  api_params.merge_patch(base_api_params);
+
   api::api_request request = {
     .path = "/departureBoard",
-    .api_params = {
-      { "accessId", ACCESS_ID },
-      { "id", STOP_ID },
-      { "maxJourneys", std::to_string(NUM_LINES) },
-      { "format", "json" }
-    }
+    .api_params = api_params
   };
 
   auto screen = init_ui();
