@@ -15,14 +15,16 @@ find_package(argparse REQUIRED)
 
 add_executable(vbb_monitor
   src/main.cpp
-  src/network.cpp
-  src/network.hpp
-  src/api.cpp
-  src/api.hpp
   src/ui.cpp
   src/ui.hpp
-  src/utils.cpp
-  src/utils.hpp
+  src/error.cpp
+  src/error.hpp
+  src/utils/network.cpp
+  src/utils/network.hpp
+  src/utils/api.cpp
+  src/utils/api.hpp
+  src/utils/time.cpp
+  src/utils/time.hpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENSSL_LIBRARIES} -lm)

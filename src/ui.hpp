@@ -2,7 +2,7 @@
 #include <ftxui/dom/table.hpp>
 #include <ftxui/screen/screen.hpp>
 
-#include "api.hpp"
+#include "utils/api.hpp"
 
 using namespace ftxui;
 

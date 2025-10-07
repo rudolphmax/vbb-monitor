@@ -7,7 +7,7 @@
 #include <argparse/argparse.hpp>
 #include <string>
 
-#include "api.hpp"
+#include "utils/api.hpp"
 #include "ui.hpp"
 
 int main(int argc, char *argv[]) {

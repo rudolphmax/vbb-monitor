@@ -6,7 +6,7 @@
 #include <thread>
 #include <fmt/format.h>
 
-#include "utils.hpp"
+#include "utils/time.hpp"
 #include "ui.hpp"
 
 std::string get_delay(int drt) {
