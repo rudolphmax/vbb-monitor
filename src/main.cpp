@@ -8,7 +8,7 @@
 #include <string>
 
 #include "utils/api.hpp"
-#include "ui.hpp"
+#include "app.hpp"
 
 int main(int argc, char *argv[]) {
   argparse::ArgumentParser program("program_name");
@@ -158,8 +158,7 @@ int main(int argc, char *argv[]) {
     .api_params = api_params
   };
 
-  auto screen = init_ui();
-  start_ui(screen, api_config, request, REFRESH_INTERVAL, NUM_LINES);
+  start(api_config, request, REFRESH_INTERVAL, NUM_LINES);
 
   return EXIT_SUCCESS;
 }

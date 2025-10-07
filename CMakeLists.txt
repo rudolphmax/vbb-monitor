@@ -15,8 +15,10 @@ find_package(argparse REQUIRED)
 
 add_executable(vbb_monitor
   src/main.cpp
-  src/ui.cpp
-  src/ui.hpp
+  src/app.cpp
+  src/app.hpp
+  src/utils/ui.cpp
+  src/utils/ui.hpp
   src/error.cpp
   src/error.hpp
   src/utils/network.cpp
