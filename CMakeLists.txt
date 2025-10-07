@@ -19,8 +19,6 @@ add_executable(vbb_monitor
   src/app.hpp
   src/utils/ui.cpp
   src/utils/ui.hpp
-  src/error.cpp
-  src/error.hpp
   src/utils/network.cpp
   src/utils/network.hpp
   src/utils/api.cpp
