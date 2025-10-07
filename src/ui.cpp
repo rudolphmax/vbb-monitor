@@ -56,7 +56,13 @@ Element time_element(std::string time, std::string delay = "", bool is_realtime 
 }
 
 void add_separator_line(std::vector<Elements>* lines) {
-  (*lines).push_back({separatorLight(), separatorCharacter("─"), separatorLight() | flex, separatorCharacter("─"), separatorLight()});
+  (*lines).push_back({
+    separatorLight() | dim,
+    separatorCharacter("─") | dim,
+    separatorLight() | dim | flex,
+    separatorCharacter("─") | dim,
+    separatorLight() | dim
+  });
 }
 
 void add_line(std::vector<Elements>* lines, Element name, Element direction, Element time, bool is_cancelled = false) {
@@ -227,7 +233,7 @@ void departure_list(Screen screen, const api::api_config api_config, const api::
 
       auto direction = text_element((std::string) departure.direction);
 
-      if (!is_soon && i-1 > 0 && departures[i-1].dmin <= 10) {
+      if (!is_soon && i-1 >= 0 && departures[i-1].dmin <= 10) {
         add_separator_line(&lines);
       }
 
