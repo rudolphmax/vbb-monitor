@@ -1,3 +1,5 @@
+#include <condition_variable>
+#include <mutex>
 #include <thread>
 #include <algorithm>
 #include <cstdlib>
@@ -8,83 +10,93 @@
 #include "utils/ui.hpp"
 #include "utils/time.hpp"
 
+Departure* departures;
+std::condition_variable departures_cv;
+std::mutex departures_mutex;
+
 std::time_t now_tt;
 struct tm now_c;
 
-Departure* get_departures(const api::api_config api_config, const api::api_request request, int NUM_LINES) {
-  api::api_response res = api::get(api_config, request);
-
-  // TODO: error handling
-  // if (res.error) {
-  //   fmt::print("{}", res.error);
-  //   continue;
-  // }
-
-  json fetched_departures = res.data["Departure"];
-  static Departure* departures;
-
-  departures = (Departure*) calloc(NUM_LINES, sizeof(Departure));
-
-  int i = 0;
-  for (json& departure : fetched_departures) {
-    if (i >= NUM_LINES) break;
-
-    json bg_color = departure["ProductAtStop"]["icon"]["backgroundColor"];
-    json fg_color = departure["ProductAtStop"]["icon"]["foregroundColor"];
-
-    departures[i] = {
-      .name = departure["name"],
-      .bg_color = Color::RGB(bg_color["r"], bg_color["g"], bg_color["b"]),
-      .fg_color = Color::RGB(fg_color["r"], fg_color["g"], fg_color["b"]),
-      .direction = departure["direction"],
-      .time = "",
-      .is_realtime = false,
-      .is_cancelled = departure.contains("cancelled") && departure["cancelled"],
-      .dmin = 0,
-      .drt = 0
-    };
-
-    std::tm tm = {};
-    std::tm rt_tm = {};
-
-    std::ostringstream oss;
-    oss.imbue(std::locale("de_DE.utf-8"));
-
-    parse_time(&tm, departure["date"], departure["time"], now_c.tm_isdst);
-
-    if (departure.contains("rtTime") && departure.contains("rtDate")) {
-      parse_time(&rt_tm, departure["rtDate"], departure["rtTime"], now_c.tm_isdst);
-
-      departures[i].is_realtime = true;
-      departures[i].dmin = std::floor(std::difftime(std::mktime(&rt_tm), now_tt) / 60);
-      departures[i].drt = std::floor(std::difftime(std::mktime(&rt_tm), std::mktime(&tm)) / 60);
-      oss << std::put_time(&rt_tm, "%H:%M");
-
-    } else {
-      departures[i].dmin = std::floor(std::difftime(std::mktime(&tm), now_tt) / 60);
-      oss << std::put_time(&tm, "%H:%M");
-    }
-
-    departures[i].time = oss.str();
-
-    i++;
-  }
-
-  std::stable_sort(
-    departures,
-    departures + NUM_LINES,
-    [](Departure a, Departure b) { return a.dmin < b.dmin; }
-  );
-
-  return departures;
-}
-
-void app(const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL, int NUM_LINES) {
+Departure* get_departures(const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL, int NUM_LINES) {
   while (true) {
     now_tt = time(nullptr);
     now_c = *localtime(&now_tt);
 
-    Departure* departures = get_departures(api_config, request, NUM_LINES);
+    api::api_response res = api::get(api_config, request);
+
+    // TODO: error handling
+    // if (res.error) {
+    //   fmt::print("{}", res.error);
+    //   continue;
+    // }
+
+    json fetched_departures = res.data["Departure"];
+
+    {
+      std::lock_guard<std::mutex> guard(departures_mutex);
+
+      int i = 0;
+      for (json& departure : fetched_departures) {
+        if (i >= NUM_LINES) break;
+
+        json bg_color = departure["ProductAtStop"]["icon"]["backgroundColor"];
+        json fg_color = departure["ProductAtStop"]["icon"]["foregroundColor"];
+
+        departures[i] = {
+          .name = departure["name"],
+          .bg_color = Color::RGB(bg_color["r"], bg_color["g"], bg_color["b"]),
+          .fg_color = Color::RGB(fg_color["r"], fg_color["g"], fg_color["b"]),
+          .direction = departure["direction"],
+          .time = "",
+          .is_realtime = false,
+          .is_cancelled = departure.contains("cancelled") && departure["cancelled"],
+          .dmin = 0,
+          .drt = 0
+        };
+
+        std::tm tm = {};
+        std::tm rt_tm = {};
+
+        std::ostringstream oss;
+        oss.imbue(std::locale("de_DE.utf-8"));
+
+        parse_time(&tm, departure["date"], departure["time"], now_c.tm_isdst);
+
+        if (departure.contains("rtTime") && departure.contains("rtDate")) {
+          parse_time(&rt_tm, departure["rtDate"], departure["rtTime"], now_c.tm_isdst);
+
+          departures[i].is_realtime = true;
+          departures[i].dmin = std::floor(std::difftime(std::mktime(&rt_tm), now_tt) / 60);
+          departures[i].drt = std::floor(std::difftime(std::mktime(&rt_tm), std::mktime(&tm)) / 60);
+          oss << std::put_time(&rt_tm, "%H:%M");
+
+        } else {
+          departures[i].dmin = std::floor(std::difftime(std::mktime(&tm), now_tt) / 60);
+          oss << std::put_time(&tm, "%H:%M");
+        }
+
+        departures[i].time = oss.str();
+
+        i++;
+      }
+
+      std::stable_sort(
+        departures,
+        departures + NUM_LINES,
+        [](Departure a, Departure b) { return a.dmin < b.dmin; }
+      );
+    }
+
+    departures_cv.notify_all();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(REFRESH_INTERVAL));
+  }
+}
+
+void display(int NUM_LINES) {
+  while (true) {
+    std::unique_lock<std::mutex> lk(departures_mutex);
+    departures_cv.wait(lk);
 
     std::vector<Elements> lines;
 
@@ -138,15 +150,17 @@ void app(const api::api_config api_config, const api::api_request request, int R
     }
 
     refresh_screen(lines, now_c);
-
-    free(departures);
-    std::this_thread::sleep_for(std::chrono::milliseconds(REFRESH_INTERVAL));
   }
 }
 
-void start(const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL, int NUM_LINES) {
+void app(const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL, int NUM_LINES) {
   init_ui();
 
-  std::thread t(app, api_config, request, REFRESH_INTERVAL, NUM_LINES);
-  t.join();
+  departures = (Departure*) calloc(NUM_LINES, sizeof(Departure));
+
+  std::thread fetcher(get_departures, api_config, request, REFRESH_INTERVAL, NUM_LINES), displayer(display, NUM_LINES);
+  fetcher.join();
+  displayer.join();
+
+  free(departures);
 }

@@ -158,7 +158,7 @@ int main(int argc, char *argv[]) {
     .api_params = api_params
   };
 
-  start(api_config, request, REFRESH_INTERVAL, NUM_LINES);
+  app(api_config, request, REFRESH_INTERVAL, NUM_LINES);
 
   return EXIT_SUCCESS;
 }
