@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     API_BASE = program.get<std::string>("-b");
   }
 
-  if (!program.is_used("-b") && std::getenv("VBBMON_API_BASE")) {
+  if (!program.is_used("-b") && std::getenv("VBBMON_API_PARAMS")) {
     raw_api_params = std::getenv("VBBMON_API_PARAMS");
 
   } else {
