@@ -17,7 +17,7 @@ std::mutex departures_mutex;
 std::time_t now_tt;
 struct tm now_c;
 
-Departure* get_departures(const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL, int NUM_LINES) {
+void get_departures(const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL, int NUM_LINES) {
   while (true) {
     now_tt = time(nullptr);
     now_c = *localtime(&now_tt);
@@ -156,11 +156,11 @@ void display(int NUM_LINES) {
 void app(const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL, int NUM_LINES) {
   init_ui();
 
-  departures = (Departure*) calloc(NUM_LINES, sizeof(Departure));
+  departures = new Departure[NUM_LINES];
 
   std::thread fetcher(get_departures, api_config, request, REFRESH_INTERVAL, NUM_LINES), displayer(display, NUM_LINES);
   fetcher.join();
   displayer.join();
 
-  free(departures);
+  delete[] departures;
 }
