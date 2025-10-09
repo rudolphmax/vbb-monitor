@@ -106,7 +106,7 @@ void draw_departure_screen(std::vector<Elements> lines, tm current_time) {
 
   std::ostringstream oss;
   oss.imbue(std::locale("de_DE.utf-8"));
-  oss << std::put_time(&current_time, "%H:%M:%S");
+  oss << std::put_time(&current_time, "%H:%M");
 
   Render((*screen), get_document(lines, oss.str()));
   (*screen).Print();
