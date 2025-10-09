@@ -148,7 +148,13 @@ int main(int argc, char *argv[]) {
 
   // TODO: add error handling
   if (!raw_api_params.empty()) {
-    api_params = json::parse(raw_api_params);
+    try {
+      api_params = json::parse(raw_api_params);
+
+    } catch (...) {
+      fmt::print("Error parsing additional api params JSON. Please check your syntax.\n");
+      return EXIT_FAILURE;
+    }
   }
 
   api_params.merge_patch(base_api_params);
