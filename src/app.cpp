@@ -10,9 +10,9 @@
 #include "utils/ui.hpp"
 #include "utils/time.hpp"
 
-Departure* departures;
-std::condition_variable departures_cv;
-std::mutex departures_mutex;
+Data* data;
+std::condition_variable data_cv;
+std::mutex data_mutex;
 
 std::time_t now_tt;
 struct tm now_c;
@@ -22,72 +22,87 @@ void get_departures(const api::api_config api_config, const api::api_request req
     now_tt = time(nullptr);
     now_c = *localtime(&now_tt);
 
-    api::api_response res = api::get(api_config, request);
-
-    // TODO: error handling
-    // if (res.error) {
-    //   fmt::print("{}", res.error);
-    //   continue;
-    // }
-
-    json fetched_departures = res.data["Departure"];
-
+    // Clearing Error
     {
-      std::lock_guard<std::mutex> guard(departures_mutex);
-
-      int i = 0;
-      for (json& departure : fetched_departures) {
-        if (i >= NUM_LINES) break;
-
-        json bg_color = departure["ProductAtStop"]["icon"]["backgroundColor"];
-        json fg_color = departure["ProductAtStop"]["icon"]["foregroundColor"];
-
-        departures[i] = {
-          .name = departure["name"],
-          .bg_color = Color::RGB(bg_color["r"], bg_color["g"], bg_color["b"]),
-          .fg_color = Color::RGB(fg_color["r"], fg_color["g"], fg_color["b"]),
-          .direction = departure["direction"],
-          .time = "",
-          .is_realtime = false,
-          .is_cancelled = departure.contains("cancelled") && departure["cancelled"],
-          .dmin = 0,
-          .drt = 0
-        };
-
-        std::tm tm = {};
-        std::tm rt_tm = {};
-
-        std::ostringstream oss;
-        oss.imbue(std::locale("de_DE.utf-8"));
-
-        parse_time(&tm, departure["date"], departure["time"], now_c.tm_isdst);
-
-        if (departure.contains("rtTime") && departure.contains("rtDate")) {
-          parse_time(&rt_tm, departure["rtDate"], departure["rtTime"], now_c.tm_isdst);
-
-          departures[i].is_realtime = true;
-          departures[i].dmin = std::floor(std::difftime(std::mktime(&rt_tm), now_tt) / 60);
-          departures[i].drt = std::floor(std::difftime(std::mktime(&rt_tm), std::mktime(&tm)) / 60);
-          oss << std::put_time(&rt_tm, "%H:%M");
-
-        } else {
-          departures[i].dmin = std::floor(std::difftime(std::mktime(&tm), now_tt) / 60);
-          oss << std::put_time(&tm, "%H:%M");
-        }
-
-        departures[i].time = oss.str();
-
-        i++;
-      }
-
-      std::stable_sort(
-        departures,
-        departures + NUM_LINES,
-        [](Departure a, Departure b) { return a.dmin < b.dmin; }
-      );
+      std::lock_guard<std::mutex> guard(data_mutex);
+      delete data->error;
+      data->error = nullptr;
     }
 
-    departures_cv.notify_all();
+    try {
+      api::api_response res = api::get(api_config, request);
+
+      if (res.error) {
+        std::lock_guard<std::mutex> guard(data_mutex);
+
+        fmt::print("{}", res.error);
+        data->error = new Error({
+          .message = fmt::format("Fetching failed - {}", res.error)
+        });
+
+      } else {
+        std::lock_guard<std::mutex> guard(data_mutex);
+
+        json fetched_departures = res.data["Departure"];
+
+        int i = 0;
+        for (json& departure : fetched_departures) {
+          if (i >= NUM_LINES) break;
+
+          json bg_color = departure["ProductAtStop"]["icon"]["backgroundColor"];
+          json fg_color = departure["ProductAtStop"]["icon"]["foregroundColor"];
+
+          data->departures[i] = {
+            .name = departure["name"],
+            .bg_color = Color::RGB(bg_color["r"], bg_color["g"], bg_color["b"]),
+            .fg_color = Color::RGB(fg_color["r"], fg_color["g"], fg_color["b"]),
+            .direction = departure["direction"],
+            .time = "",
+            .is_realtime = false,
+            .is_cancelled = departure.contains("cancelled") && departure["cancelled"],
+            .dmin = 0,
+            .drt = 0
+          };
+
+          std::tm tm = {};
+          std::tm rt_tm = {};
+
+          std::ostringstream oss;
+          oss.imbue(std::locale("de_DE.utf-8"));
+
+          parse_time(&tm, departure["date"], departure["time"], now_c.tm_isdst);
+
+          if (departure.contains("rtTime") && departure.contains("rtDate")) {
+            parse_time(&rt_tm, departure["rtDate"], departure["rtTime"], now_c.tm_isdst);
+
+            data->departures[i].is_realtime = true;
+            data->departures[i].dmin = std::floor(std::difftime(std::mktime(&rt_tm), now_tt) / 60);
+            data->departures[i].drt = std::floor(std::difftime(std::mktime(&rt_tm), std::mktime(&tm)) / 60);
+            oss << std::put_time(&rt_tm, "%H:%M");
+
+          } else {
+            data->departures[i].dmin = std::floor(std::difftime(std::mktime(&tm), now_tt) / 60);
+            oss << std::put_time(&tm, "%H:%M");
+          }
+
+          data->departures[i].time = oss.str();
+
+          i++;
+        }
+
+        std::stable_sort(
+          data->departures,
+          data->departures + NUM_LINES,
+          [](Departure a, Departure b) { return a.dmin < b.dmin; }
+        );
+      }
+    } catch(...) {
+      data->error = new Error({
+        .message = "An error ocurred when fetching the data."
+      });
+    }
+
+    data_cv.notify_all();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(REFRESH_INTERVAL));
   }
@@ -95,13 +110,19 @@ void get_departures(const api::api_config api_config, const api::api_request req
 
 void display(int NUM_LINES) {
   while (true) {
-    std::unique_lock<std::mutex> lk(departures_mutex);
-    departures_cv.wait(lk);
+    std::unique_lock<std::mutex> lk(data_mutex);
+    data_cv.wait(lk);
 
     std::vector<Elements> lines;
 
+    if (data->error) {
+      draw_error_screen(data->error->message);
+
+      continue;
+    }
+
     for (int i = 0; i < NUM_LINES; i++) {
-      Departure departure = departures[i];
+      Departure departure = data->departures[i];
 
       Element departure_time_element;
 
@@ -142,25 +163,32 @@ void display(int NUM_LINES) {
 
       auto direction = text_element((std::string) departure.direction);
 
-      if (!is_soon && i-1 >= 0 && departures[i-1].dmin <= 10) {
+      if (!is_soon && i-1 >= 0 && data->departures[i-1].dmin <= 10) {
         add_separator_line(&lines);
       }
 
       add_line(&lines, name, direction, departure_time_element, departure.is_cancelled);
     }
 
-    refresh_screen(lines, now_c);
+    draw_departure_screen(lines, now_c);
   }
 }
 
 void app(const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL, int NUM_LINES) {
   init_ui();
 
-  departures = new Departure[NUM_LINES];
+  data = new Data({
+    .departures = new Departure[NUM_LINES],
+    .error = nullptr
+  });
 
   std::thread fetcher(get_departures, api_config, request, REFRESH_INTERVAL, NUM_LINES), displayer(display, NUM_LINES);
   fetcher.join();
   displayer.join();
 
-  delete[] departures;
+  delete[] data->departures;
+  if (data->error) {
+    delete data->error;
+  }
+  delete data;
 }

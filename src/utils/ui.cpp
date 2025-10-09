@@ -101,14 +101,40 @@ Element get_document(std::vector<Elements> lines, std::string timestring) {
   });
 }
 
-void refresh_screen(std::vector<Elements> lines, tm current_time) {
+void draw_departure_screen(std::vector<Elements> lines, tm current_time) {
   (*screen).Clear();
 
   std::ostringstream oss;
   oss.imbue(std::locale("de_DE.utf-8"));
-  oss << std::put_time(&current_time, "%H:%M");
+  oss << std::put_time(&current_time, "%H:%M:%S");
 
   Render((*screen), get_document(lines, oss.str()));
+  (*screen).Print();
+}
+
+void draw_error_screen(std::string message) {
+  (*screen).Clear();
+
+  Render(
+    (*screen),
+    vcenter(
+      hcenter(
+        color(
+          Color::Red,
+          borderRounded(
+            hbox(
+              separatorEmpty(),
+              underlined(text("Error")),
+              text(": "),
+              text(message),
+              separatorEmpty()
+            )
+          )
+        )
+      )
+    )
+  );
+
   (*screen).Print();
 }
 

@@ -6,7 +6,9 @@ using namespace ftxui;
 
 Screen* init_ui();
 
-void refresh_screen(std::vector<Elements> lines, tm current_time);
+void draw_departure_screen(std::vector<Elements> lines, tm current_time);
+
+void draw_error_screen(std::string message);
 
 std::string get_delay(int drt);
 
