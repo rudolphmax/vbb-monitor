@@ -4,11 +4,15 @@
 
 using namespace ftxui;
 
-Screen* init_ui();
+typedef struct ScreenData {
+  std::vector<Elements> departures;
+  std::string time;
+  std::string error_message;
+} ScreenData;
 
-void draw_departure_screen(std::vector<Elements> lines, tm current_time);
+ScreenData* init_ui();
 
-void draw_error_screen(std::string message);
+void refresh_screen();
 
 std::string get_delay(int drt);
 

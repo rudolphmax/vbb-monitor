@@ -2,13 +2,14 @@
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/dom/node.hpp>
 #include <ftxui/screen/color.hpp>
-#include <iomanip>
+#include <ftxui/screen/screen.hpp>
 #include <fmt/format.h>
 
 #include "time.hpp"
 #include "ui.hpp"
 
 Screen* screen = NULL;
+ScreenData* screen_data;
 
 std::string get_delay(int drt) {
   if (drt == 0) return "";
@@ -84,64 +85,65 @@ void add_line(std::vector<Elements>* lines, Element name, Element direction, Ele
   });
 }
 
-Element get_document(std::vector<Elements> lines, std::string timestring) {
-  return vbox({
-    bgcolor(
-      Color::White,
+Element departure_screen() {
+  return gridbox(screen_data->departures);
+}
+
+Element error_screen() {
+  return vcenter(
+    hcenter(
       color(
-        Color::Black,
-        hbox({
-          filler(),
-          text(timestring),
-          filler(),
-        })
-      )
-    ),
-    gridbox(lines)
-  });
-}
-
-void draw_departure_screen(std::vector<Elements> lines, tm current_time) {
-  (*screen).Clear();
-
-  std::ostringstream oss;
-  oss.imbue(std::locale("de_DE.utf-8"));
-  oss << std::put_time(&current_time, "%H:%M");
-
-  Render((*screen), get_document(lines, oss.str()));
-  (*screen).Print();
-}
-
-void draw_error_screen(std::string message) {
-  (*screen).Clear();
-
-  Render(
-    (*screen),
-    vcenter(
-      hcenter(
-        color(
-          Color::Red,
-          borderRounded(
-            hbox(
-              separatorEmpty(),
-              underlined(text("Error")),
-              text(": "),
-              text(message),
-              separatorEmpty()
-            )
+        Color::Red,
+        borderRounded(
+          hbox(
+            separatorEmpty(),
+            underlined(text("Error")),
+            text(": "),
+            text(screen_data->error_message),
+            separatorEmpty()
           )
         )
       )
     )
+  ) | flex;
+}
+
+void refresh_screen() {
+  (*screen).Clear();
+
+  Render(
+    *screen,
+    vbox({
+      bgcolor(
+        Color::White,
+        color(
+          Color::Black,
+          hbox({
+            filler(),
+            text(screen_data->time),
+            filler(),
+          })
+        )
+      ),
+      !screen_data->error_message.empty() ?
+              error_screen()
+            : departure_screen()
+    })
   );
 
   (*screen).Print();
 }
 
-Screen* init_ui() {
+ScreenData* init_ui() {
   static Screen s = Screen::Create(Dimension::Full(), Dimension::Full());
 
   screen = &s;
 
-  return screen;
+  screen_data = new ScreenData();
+
+  return screen_data;
+}
+
+void deinit_ui() {
+  delete screen_data;
 }

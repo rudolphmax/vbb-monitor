@@ -1,3 +1,4 @@
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -19,9 +20,6 @@ struct tm now_c;
 
 void get_departures(const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL, int NUM_LINES) {
   while (true) {
-    now_tt = time(nullptr);
-    now_c = *localtime(&now_tt);
-
     // Clearing Error
     {
       std::lock_guard<std::mutex> guard(data_mutex);
@@ -108,81 +106,95 @@ void get_departures(const api::api_config api_config, const api::api_request req
   }
 }
 
-void display(int NUM_LINES) {
+void display(ScreenData* screen_data, int NUM_LINES) {
   while (true) {
-    std::unique_lock<std::mutex> lk(data_mutex);
-    data_cv.wait(lk);
+    // grab current time
+    now_tt = time(nullptr);
+    now_c = *localtime(&now_tt);
 
-    std::vector<Elements> lines;
+    std::ostringstream oss;
+    oss.imbue(std::locale("de_DE.utf-8"));
+    oss << std::put_time(&now_c, "%H:%M:%S");
+
+    screen_data->time = oss.str();
+
+    refresh_screen();
+
+    // Wait one second for the data mutex signal
+    std::unique_lock<std::mutex> lk(data_mutex);
+    data_cv.wait_for(lk, std::chrono::seconds(1));
 
     if (data->error) {
-      draw_error_screen(data->error->message);
+      screen_data->error_message = data->error->message;
 
-      continue;
-    }
+    } else {
+      screen_data->error_message = "";
 
-    for (int i = 0; i < NUM_LINES; i++) {
-      Departure departure = data->departures[i];
+      std::vector<Elements> lines;
 
-      Element departure_time_element;
+      for (int i = 0; i < NUM_LINES; i++) {
+        Departure departure = data->departures[i];
 
-      bool is_soon = departure.dmin <= 10;
+        Element departure_time_element;
 
-      if (departure.dmin <= 0) {
-        departure_time_element = time_element(
-          "now\n",
-          "",
-          departure.is_realtime,
-          true
+        bool is_soon = departure.dmin <= 10;
+
+        if (departure.dmin <= 0) {
+          departure_time_element = time_element(
+            "now\n",
+            "",
+            departure.is_realtime,
+            true
+          );
+
+        } else if (is_soon) {
+          departure_time_element = time_element(
+            fmt::format("{}\n", departure.dmin),
+            get_delay(departure.drt),
+            departure.is_realtime,
+            true
+          );
+
+        } else {
+          departure_time_element = time_element(
+            departure.time,
+            get_delay(departure.drt),
+            departure.is_realtime
+          );
+        }
+
+        auto name = text_element(
+          departure.name,
+          departure.bg_color,
+          departure.fg_color,
+          true,
+          true,
+          is_soon
         );
 
-      } else if (is_soon) {
-        departure_time_element = time_element(
-          fmt::format("{}\n", departure.dmin),
-          get_delay(departure.drt),
-          departure.is_realtime,
-          true
-        );
+        auto direction = text_element((std::string) departure.direction);
 
-      } else {
-        departure_time_element = time_element(
-          departure.time,
-          get_delay(departure.drt),
-          departure.is_realtime
-        );
+        if (!is_soon && i-1 >= 0 && data->departures[i-1].dmin <= 10) {
+          add_separator_line(&lines);
+        }
+
+        add_line(&lines, name, direction, departure_time_element, departure.is_cancelled);
       }
 
-      auto name = text_element(
-        departure.name,
-        departure.bg_color,
-        departure.fg_color,
-        true,
-        true,
-        is_soon
-      );
-
-      auto direction = text_element((std::string) departure.direction);
-
-      if (!is_soon && i-1 >= 0 && data->departures[i-1].dmin <= 10) {
-        add_separator_line(&lines);
-      }
-
-      add_line(&lines, name, direction, departure_time_element, departure.is_cancelled);
+      screen_data->departures = lines;
     }
-
-    draw_departure_screen(lines, now_c);
   }
 }
 
 void app(const api::api_config api_config, const api::api_request request, int REFRESH_INTERVAL, int NUM_LINES) {
-  init_ui();
+  ScreenData* screen_data = init_ui();
 
   data = new Data({
     .departures = new Departure[NUM_LINES],
     .error = nullptr
   });
 
-  std::thread fetcher(get_departures, api_config, request, REFRESH_INTERVAL, NUM_LINES), displayer(display, NUM_LINES);
+  std::thread fetcher(get_departures, api_config, request, REFRESH_INTERVAL, NUM_LINES), displayer(display, screen_data, NUM_LINES);
   fetcher.join();
   displayer.join();
 
